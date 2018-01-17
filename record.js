@@ -447,6 +447,8 @@
 
     Dialog = (function () {
         var isFinishOnOpen = false,
+            isLoopRecordings = false,
+            isPlayFromCurrentLocation = false,
             countdownNumber = "",
             EVENT_BRIDGE_TYPE = "record",
             BODY_LOADED_ACTION = "bodyLoaded",
@@ -461,7 +463,11 @@
             SET_COUNTDOWN_NUMBER_ACTION = "setCountdownNumber",
             STOP_RECORDING_ACTION = "stopRecording",
             FINISH_ON_OPEN_ACTION = "finishOnOpen",
-            SETTINGS_FINISH_ON_OPEN = "record/finishOnOpen";
+            SETTINGS_FINISH_ON_OPEN = "record/finishOnOpen"
+            LOOP_RECORDINGS_ACTION = "loopRecordings",
+            SETTINGS_LOOP_RECORDINGS_ACTION = "record/loopRecordings"
+            PLAY_FROM_CURRENT_LOCATION_ACTION = "playFromCurrentLocation",
+            SETTINGS_PLAY_FROM_CURRENT_LOCATION_ACTION = "record/playFromCurrentLocation";
 
         function isUsingToolbar() {
             return ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
@@ -574,6 +580,16 @@
                     }));
                     tablet.emitScriptEvent(JSON.stringify({
                         type: EVENT_BRIDGE_TYPE,
+                        action: LOOP_RECORDINGS_ACTION,
+                        value: isLoopRecordings
+                    }));
+                    tablet.emitScriptEvent(JSON.stringify({
+                        type: EVENT_BRIDGE_TYPE,
+                        action: PLAY_FROM_CURRENT_LOCATION_ACTION,
+                        value: isPlayFromCurrentLocation
+                    }));
+                    tablet.emitScriptEvent(JSON.stringify({
+                        type: EVENT_BRIDGE_TYPE,
                         action: NUMBER_OF_PLAYERS_ACTION,
                         value: Player.numberOfPlayers()
                     }));
@@ -612,12 +628,24 @@
                     isFinishOnOpen = message.value;
                     Settings.setValue(SETTINGS_FINISH_ON_OPEN, isFinishOnOpen);
                     break;
+                case LOOP_RECORDINGS_ACTION:
+                    // Set behavior on dialog open.
+                    isLoopRecordings = message.value;
+                    Settings.setValue(SETTINGS_LOOP_RECORDINGS_ACTION, isLoopRecordings);
+                    break;
+                case PLAY_FROM_CURRENT_LOCATION_ACTION:
+                    // Set behavior on dialog open.
+                    isPlayFromCurrentLocation = message.value;
+                    Settings.setValue(SETTINGS_PLAY_FROM_CURRENT_LOCATION_ACTION, isPlayFromCurrentLocation);
+                    break;
                 }
             }
         }
 
         function setUp() {
             isFinishOnOpen = Settings.getValue(SETTINGS_FINISH_ON_OPEN) === true;
+            isLoopRecordings = Settings.getValue(SETTINGS_LOOP_RECORDINGS_ACTION) === true;
+            isPlayFromCurrentLocation = Settings.getValue(SETTINGS_PLAY_FROM_CURRENT_LOCATION_ACTION) === true;
             tablet.webEventReceived.connect(onWebEventReceived);
         }
 

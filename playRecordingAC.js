@@ -90,7 +90,7 @@
             }
         }
 
-        function create(filename, position, orientation) {
+        function create(filename, position, orientation,isLooped,uplayerTime, isPlayFromCurrentLocation ) {
             // Create a new persistence entity (even if already have one but that should never occur).
             var properties;
 
@@ -108,6 +108,9 @@
                 position: position,
                 orientation: orientation,
                 scriptUUID: scriptUUID,
+                isLooped: isLooped,
+                playerTime: uplayerTime,
+                isPlayFromCurrentLocation: isPlayFromCurrentLocation };
                 timestamp: Date.now()
             };
 
@@ -132,8 +135,8 @@
 
         function find() {
             // Find a persistence entity that isn't being played.
-            // AC scripts may simultaneously find the same entity to play because octree updates aren't instantaneously 
-            // propagated. Additionally, messages are not instantaneous. To address these issues the "find" progresses through 
+            // AC scripts may simultaneously find the same entity to play because octree updates aren't instantaneously
+            // propagated. Additionally, messages are not instantaneous. To address these issues the "find" progresses through
             // the following search states:
             // - SEARCH_IDLE
             //      No searching is being performed.
@@ -145,12 +148,12 @@
             //      Return null.
             // - SEARCH_CLAIMING
             //      An entity has been found and is reported in heartbeat messages but isn't being played yet. After a period of
-            //      time, if no other players report they're playing that entity then transition to SEARCH_IDLE otherwise 
+            //      time, if no other players report they're playing that entity then transition to SEARCH_IDLE otherwise
             //      transition to SEARCH_PAUSING.
-            //      If transitioning to SEARCH_IDLE update the entity userData and return the recording details, otherwise 
+            //      If transitioning to SEARCH_IDLE update the entity userData and return the recording details, otherwise
             //      return null;
             // - SEARCH_PAUSING
-            //      Two or more players have tried to play the same entity. Wait for a randomized period of time before 
+            //      Two or more players have tried to play the same entity. Wait for a randomized period of time before
             //      transitioning to SEARCH_SEARCHING.
             //      Return null.
             // One of these states is processed each find() call.
@@ -210,7 +213,13 @@
                     userData.timestamp = Date.now();
                     Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
                     updateTimestampTimer = Script.setInterval(onUpdateTimestamp, TIMESTAMP_UPDATE_INTERVAL);
-                    result = { recording: userData.recording, position: userData.position, orientation: userData.orientation };
+                    result = {
+                        recording: userData.recording,
+                        position: userData.position,
+                        orientation: userData.orientation,
+                        isLooped: userData.isLooped,
+                        playerTime: userData.playerTime,
+                        isPlayFromCurrentLocation: userData.isPlayFromCurrentLocation };
                     break;
                 }
 
@@ -283,9 +292,10 @@
         // Recording playback functions.
         var userID = null,
             isPlayingRecording = false,
+            isLoaded = false,
             recordingFilename = "",
             autoPlayTimer = null,
-
+            recordingLoaded,
             autoPlay,
             playRecording;
 
@@ -298,7 +308,31 @@
             }));
         }
 
-        function play(user, recording, position, orientation) {
+        function loadRecording(recording){
+            Recording.loadRecording(recording, function (success) {
+                var errorMessage;
+
+                if (success) {
+                    recordingLoaded = true;
+                    UserActivityLogger.logAction("recording loaded");
+                } else {
+                    if (isManual) {
+                        // Delete persistence entity if manual play request.
+                        Entity.destroyLater();  // Schedule for deletion; works around timer threading issues.
+                    }
+
+                    errorMessage = "Could not load recording " + recording.slice(4);  // Remove leading "atp:".
+                    log(errorMessage);
+                    error(errorMessage);
+
+                    isPlayingRecording = false;
+                    recordingFilename = "";
+                    autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL);  // Try again later.
+                }
+            });
+        }
+
+        function play(user, position, orientation, isLooped, playerTime, isPlayFromCurrentLocation) {
             var errorMessage;
 
             if (autoPlayTimer) {  // Cancel auto-play.
@@ -310,11 +344,10 @@
 
             userID = user;
 
-            if (Entity.create(recording, position, orientation)) {
-                log("Play recording " + recording);
+            if (Entity.create(recording, position, orientation, isLooped, playerTime, isPlayFromCurrentLocation) && recordingLoaded) {
+                log("Play recording " + recordingFilename);
                 isPlayingRecording = true;  // Immediate feedback.
-                recordingFilename = recording;
-                playRecording(recordingFilename, position, orientation, true);
+                playRecording(position, orientation, true, isLooped, playerTime, isPlayFromCurrentLocation);
             } else {
                 errorMessage = "Could not persist recording " + recording.slice(4);  // Remove leading "atp:".
                 log(errorMessage);
@@ -342,50 +375,33 @@
                     autoPlayTimer = null;
                     isPlayingRecording = true;  // Immediate feedback.
                     recordingFilename = recording.recording;
-                    playRecording(recording.recording, recording.position, recording.orientation, false);
+                    playRecording(recording.position, recording.orientation, false, recording.isLooped, recording.playerTime, recording.isPlayFromCurrentLocation);
                 } else {
                     autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_SEARCH_INTERVAL);  // Try again soon.
                 }
             }, Math.random() * AUTOPLAY_SEARCH_DELTA);
         };
 
-        playRecording = function (recording, position, orientation, isManual) {
-            Recording.loadRecording(recording, function (success) {
-                var errorMessage;
+        playRecording = function (position, orientation, isManual, isLooped, playerTime, isPlayFromCurrentLocation) {
+            playerTime = playerTime || 0.0;
 
-                if (success) {
-                    Users.disableIgnoreRadius();
+            Users.disableIgnoreRadius();
 
-                    Agent.isAvatar = true;
-                    Avatar.position = position;
-                    Avatar.orientation = orientation;
+            Agent.isAvatar = true;
+            Avatar.position = position;
+            Avatar.orientation = orientation;
 
-                    Recording.setPlayFromCurrentLocation(true);
-                    Recording.setPlayerUseDisplayName(true);
-                    Recording.setPlayerUseHeadModel(false);
-                    Recording.setPlayerUseAttachments(true);
-                    Recording.setPlayerLoop(true);
-                    Recording.setPlayerUseSkeletonModel(true);
+            Recording.setPlayFromCurrentLocation(isPlayFromCurrentLocation);
+            Recording.setPlayerUseDisplayName(true);
+            Recording.setPlayerUseHeadModel(false);
+            Recording.setPlayerUseAttachments(true);
+            Recording.setPlayerLoop(isLooped);
+            Recording.setPlayerUseSkeletonModel(true);
 
-                    Recording.setPlayerTime(0.0);
-                    Recording.startPlaying();
+            Recording.setPlayerTime(playerTime);
+            Recording.startPlaying();
 
-                    UserActivityLogger.logAction("playRecordingAC_play_recording");
-                } else {
-                    if (isManual) {
-                        // Delete persistence entity if manual play request.
-                        Entity.destroyLater();  // Schedule for deletion; works around timer threading issues.
-                    }
-
-                    errorMessage = "Could not load recording " + recording.slice(4);  // Remove leading "atp:".
-                    log(errorMessage);
-                    error(errorMessage);
-
-                    isPlayingRecording = false;
-                    recordingFilename = "";
-                    autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL);  // Try again later.
-                }
-            });
+            UserActivityLogger.logAction("playRecordingAC_play_recording");
         };
 
         function stop() {
@@ -399,10 +415,15 @@
             }
             isPlayingRecording = false;
             recordingFilename = "";
+
         }
 
         function isPlaying() {
             return isPlayingRecording;
+        }
+
+        function isLoaded() {
+            return isLoaded;
         }
 
         function recording() {
@@ -423,9 +444,11 @@
 
         return {
             autoPlay: autoPlay,
+            loadRecording: loadRecording,
             play: play,
             stop: stop,
             isPlaying: isPlaying,
+            isLoaded: isLoaded,
             recording: recording,
             setUp: setUp,
             tearDown: tearDown
@@ -436,6 +459,7 @@
         Messages.sendMessage(HIFI_RECORDER_CHANNEL, JSON.stringify({
             playing: Player.isPlaying(),
             recording: Player.recording(),
+            loaded: Player.isLoaded(),
             entity: Entity.id()
         }));
     }
@@ -464,9 +488,13 @@
         message = JSON.parse(message);
         if (message.player === scriptUUID) {
             switch (message.command) {
+            case PLAYER_COMMAND_LOAD:
+                Player.load(message.recording);
+                sendHeartbeat();
+                break;
             case PLAYER_COMMAND_PLAY:
                 if (!Player.isPlaying()) {
-                    Player.play(sender, message.recording, message.position, message.orientation);
+                    Player.play(sender, message.position, message.orientation, message.isLooped, message.playerTime, message.isPlayFromCurrentLocation);
                 } else {
                     log("Didn't start playing " + message.recording + " because already playing " + Player.recording());
                 }

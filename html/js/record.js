@@ -32,9 +32,11 @@ var isUsingToolbar = false,
     BODY_LOADED_ACTION = "bodyLoaded",
     USING_TOOLBAR_ACTION = "usingToolbar",
     RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
+    PLAYERS_THAT_ARE_LOADED_ACTION = "playersThatAreLoaded",
     NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
     STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
     LOAD_RECORDING_ACTION = "loadRecording",
+    PLAY_RECORDING_ACTION = "playRecording",
     START_RECORDING_ACTION = "startRecording",
     SET_COUNTDOWN_NUMBER_ACTION = "setCountdownNumber",
     STOP_RECORDING_ACTION = "stopRecording",
@@ -198,6 +200,13 @@ function onScriptEventReceived(data) {
             break;
         case RECORDINGS_BEING_PLAYED_ACTION:
             recordingsBeingPlayed = JSON.parse(message.value);
+            updateRecordings();
+            updatePlayersUnused();
+            updateInstructions();
+            updateLoadButton();
+            break;
+        case PLAYERS_THAT_ARE_LOADED_ACTION:
+            playersThatAreLoaded = JSON.parse(message.value);
             updateRecordings();
             updatePlayersUnused();
             updateInstructions();

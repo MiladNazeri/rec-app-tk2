@@ -145,9 +145,9 @@
             }
 
             log("Recording mapped to " + mappingPath);
-            log("Request play recording");
+            log("Request load recording");
 
-            play("atp:" + mappingPath, startPosition, startOrientation);
+            load("atp:" + mappingPath, startPosition, startOrientation);
         }
 
         function saveRecordingToAssetCallback(url) {
@@ -248,7 +248,7 @@
         }
 
         function setUp(playerCallback) {
-            play = playerCallback;
+            load = playerCallback;
 
             tickSound = SoundCache.getSound(Script.resolvePath(TICK_SOUND));
             startRecordingSound = SoundCache.getSound(Script.resolvePath(START_RECORDING_SOUND));
@@ -278,10 +278,12 @@
             RECORDER_COMMAND_ERROR = "error",
             HIFI_PLAYER_CHANNEL = "HiFi-Player-Channel",
             PLAYER_COMMAND_PLAY = "play",
+            PLAYER_COMMAND_LOAD = "load",
             PLAYER_COMMAND_STOP = "stop",
 
             playerIDs = [],             // UUIDs of AC player scripts.
             playerIsPlayings = [],      // True if AC player script is playing a recording.
+            playerIsLoadeds  = [],
             playerRecordings = [],      // Assignment client mappings of recordings being played.
             playerTimestamps = [],      // Timestamps of last heartbeat update from player script.
 
@@ -301,6 +303,7 @@
             for (i = playerTimestamps.length - 1; i >= 0; i -= 1) {
                 if (now - playerTimestamps[i] > UPDATE_INTERVAL) {
                     playerIDs.splice(i, 1);
+                    playerIsLoadeds.splice(i, 1);
                     playerIsPlayings.splice(i, 1);
                     playerRecordings.splice(i, 1);
                     playerTimestamps.splice(i, 1);
@@ -309,11 +312,11 @@
 
             // Update UI.
             if (playerIDs.length !== countBefore) {
-                Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
+                Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIsLoadeds, playerIDs);
             }
         }
 
-        function playRecording(recording, position, orientation) {
+        function playRecording(position, orientation, isLooped, playerTime, isPlayFromCurrentLocation) {
             var index;
 
             // Optional function parameters.
@@ -324,6 +327,19 @@
                 orientation = MyAvatar.orientation;
             }
 
+            if (isLooped === undefined) {
+                isLooped = false;
+            }
+
+            if (playerTime === undefined) {
+                playerTime = 0.0;
+            }
+
+            if (isPlayFromCurrentLocation === isPlayFromCurrentLocation) {
+                isPlayFromCurrentLocation = false;
+            }
+
+            // #REVIST
             index = playerIsPlayings.indexOf(false);
             if (index === -1) {
                 error("No player instance available to play recording "
@@ -334,9 +350,28 @@
             Messages.sendMessage(HIFI_PLAYER_CHANNEL, JSON.stringify({
                 player: playerIDs[index],
                 command: PLAYER_COMMAND_PLAY,
-                recording: recording,
                 position: position,
-                orientation: orientation
+                orientation: orientation,
+                isLooped: isLooped,
+                playerTime: playerTime,
+                isPlayFromCurrentLocation: isPlayFromCurrentLocation
+            }));
+        }
+
+        function loadRecording(recording) {
+            var index;
+
+            index = playerIsPlayings.indexOf(false);
+            if (index === -1) {
+                error("No player instance available to play recording "
+                    + recording.slice(4) + "!");  // Remove leading "atp:" from recording.
+                return;
+            }
+
+            Messages.sendMessage(HIFI_PLAYER_CHANNEL, JSON.stringify({
+                player: playerIDs[index],
+                command: PLAYER_COMMAND_LOAD,
+                recording: recording,
             }));
         }
 
@@ -368,18 +403,20 @@
                     playerIDs[index] = sender;
                 }
                 playerIsPlayings[index] = message.playing;
+                playerIsLoadeds[index] = message.loaded;
                 playerRecordings[index] = message.recording;
                 playerTimestamps[index] = Date.now();
-                Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
+                Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIsLoadeds, playerIDs);
             }
         }
 
         function reset() {
             playerIDs = [];
             playerIsPlayings = [];
+            playerIsLoadeds = [];
             playerRecordings = [];
             playerTimestamps = [];
-            Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
+            Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIsLoadeds, playerIDs);
         }
 
         function setUp() {
@@ -398,6 +435,7 @@
         }
 
         return {
+            loadRecording: loadRecording,
             playRecording: playRecording,
             stopPlayingRecording: stopPlayingRecording,
             numberOfPlayers: numberOfPlayers,
@@ -414,9 +452,11 @@
             BODY_LOADED_ACTION = "bodyLoaded",
             USING_TOOLBAR_ACTION = "usingToolbar",
             RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
+            PLAYERS_THAT_ARE_LOADED_ACTION = "playersThatAreLoaded"
             NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
             STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
             LOAD_RECORDING_ACTION = "loadRecording",
+            PLAY_RECORDING_ACTION = "playRecording",
             START_RECORDING_ACTION = "startRecording",
             SET_COUNTDOWN_NUMBER_ACTION = "setCountdownNumber",
             STOP_RECORDING_ACTION = "stopRecording",
@@ -447,8 +487,9 @@
             }
         }
 
-        function updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs) {
+        function updatePlayerDetails(playerIsPlayings, playerRecordings,  playerIsLoadeds, playerIDs) {
             var recordingsBeingPlayed = [],
+                playersLoaded = [],
                 length,
                 i;
 
@@ -460,10 +501,25 @@
                     });
                 }
             }
+
+            for (i = 0, length = playerIsLoadeds.length; i < length; i += 1) {
+                if (playerIsLoadeds[i]) {
+                    playersLoaded.push({
+                        filename: playerRecordings[i],
+                        playerID: playerIDs[i]
+                    });
+                }
+            }
             tablet.emitScriptEvent(JSON.stringify({
                 type: EVENT_BRIDGE_TYPE,
                 action: RECORDINGS_BEING_PLAYED_ACTION,
                 value: JSON.stringify(recordingsBeingPlayed)
+            }));
+
+            tablet.emitScriptEvent(JSON.stringify({
+                type: EVENT_BRIDGE_TYPE,
+                action: PLAYERS_THAT_ARE_LOADED_ACTION,
+                value: JSON.stringify(playersLoaded)
             }));
 
             tablet.emitScriptEvent(JSON.stringify({
@@ -491,7 +547,9 @@
             if (recording !== "") {
                 log("Load recording " + recording);
                 UserActivityLogger.logAction("record_load_recording", logDetails());
-                Player.playRecording("atp:" + recording, MyAvatar.position, MyAvatar.orientation);
+                // Player.playRecording("atp:" + recording, MyAvatar.position, MyAvatar.orientation);
+                Player.loadRecording("atp:" + recording);
+
             }
         }
 
@@ -531,6 +589,9 @@
                     // User wants to select an ATP recording to play.
                     Window.assetsDirChanged.connect(onAssetsDirChanged);
                     Window.browseAssetsAsync("Select Recording to Play", "recordings", "*.hfr");
+                    break;
+                case PLAY_RECORDING_ACTION:
+                    Player.playRecording(MyAvatar.position, MyAvatar.orientation, message.value.isLooped, message.value.isPlayerTime, message.value.isPlayFromCurrentLocation);
                     break;
                 case START_RECORDING_ACTION:
                     // Start making a recording.
@@ -653,7 +714,7 @@
 
         Dialog.setUp();
         Player.setUp();
-        Recorder.setUp(Player.playRecording);
+        Recorder.setUp(Player.loadRecording);
 
         isConnected = Window.location.isConnected;
         Script.update.connect(onUpdate);

@@ -37,7 +37,9 @@
                             <th>Unload</th>
                         </tr>
                     </thead>
-                    <tbody id="recordings-list"></tbody>
+                    <tbody id="recordings-list">
+                        <tr><td>Filename</td><td><input type="button" class="glyph red" value="w" playerID=id /></td></tr>
+                    </tbody>
                     <tbody id="instructions" class="hidden">
                         <tr>
                             <td colspan="2">
@@ -82,6 +84,10 @@
             <div id="checkbox-container" class="property checkbox">
                 <input type="checkbox" id="finish-on-open">
                 <label for="finish-on-open" id="finish-on-open-label">Stop recording automatically when ...</label>
+                <input type="checkbox" id="loop-recordings">
+                <label for="loop-recordings" id="loop-recordings-label">Loop Recordings</label>
+                <input type="checkbox" id="play-from-current-location">
+                <label for="play-from-current-location" id="play-from-current-location-label">Play from current location</label>
             </div>
         </div>
         <script>

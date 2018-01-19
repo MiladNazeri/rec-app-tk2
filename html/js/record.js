@@ -28,6 +28,10 @@ var isUsingToolbar = false,
     elRecordButton,
     elFinishOnOpen,
     elFinishOnOpenLabel,
+    elLoopRecordings,
+    elLoopRecordingsLabel,
+    playFromCurrentLocation,
+    playFromCurrentLocationLabel,
     EVENT_BRIDGE_TYPE = "record",
     BODY_LOADED_ACTION = "bodyLoaded",
     USING_TOOLBAR_ACTION = "usingToolbar",
@@ -40,7 +44,10 @@ var isUsingToolbar = false,
     START_RECORDING_ACTION = "startRecording",
     SET_COUNTDOWN_NUMBER_ACTION = "setCountdownNumber",
     STOP_RECORDING_ACTION = "stopRecording",
+    LOOP_RECORDINGS_ACTION = "loopRecordings",
+    PLAY_FROM_CURRENT_LOCATION_ACTION = "playFromCurrentLocation",
     FINISH_ON_OPEN_ACTION = "finishOnOpen";
+
 
 function stopPlayingRecording(event) {
     var playerID = event.target.getAttribute("playerID");
@@ -71,6 +78,8 @@ function updateRecordings() {
 
 
     // <tr><td>Filename</td><td><input type="button" class="glyph red" value="w" playerID=id /></td></tr>
+    // <tr><td>Filename</td><td><input type="button" class="glyph red" value="w" playerID=id /></td></tr>
+
     for (i = 0, length = recordingsBeingPlayed.length; i < length; i += 1) {
         tr = document.createElement("tr");
         td = document.createElement("td");
@@ -260,6 +269,23 @@ function onFinishOnOpenClicked() {
     }));
 }
 
+function onLoopRecordingsClicked() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: EVENT_BRIDGE_TYPE,
+        action: LOOP_RECORDINGS_ACTION,
+        value: elLoopRecordings.checked
+    }));
+}
+
+function onPlayFromCurrentLocationClicked() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: EVENT_BRIDGE_TYPE,
+        action: PLAY_FROM_CURRENT_LOCATION_ACTION,
+        value: playFromCurrentLocation.checked
+    }));
+}
+
+
 function signalBodyLoaded() {
     EventBridge.emitWebEvent(JSON.stringify({
         type: EVENT_BRIDGE_TYPE,
@@ -296,6 +322,17 @@ function onBodyLoaded() {
     elFinishOnOpen.onclick = onFinishOnOpenClicked;
 
     elFinishOnOpenLabel = document.getElementById("finish-on-open-label");
+
+    elLoopRecordings = document.getElementById("loop-recordings");
+    elLoopRecordings.onclick = onLoopRecordingsClicked;
+
+    elLoopRecordingsLabel = document.getElementById("loop-recordings-label");
+
+    playFromCurrentLocation = document.getElementById("play-from-current-location");
+    playFromCurrentLocation.onclick = playFromCurrentLocationClicked;
+
+    playFromCurrentLocationLabel = document.getElementById("play-from-current-location-label");
+
 
     signalBodyLoaded();
 }

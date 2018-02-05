@@ -22,7 +22,7 @@
         HEARTBEAT_INTERVAL = 3000,
         TIMESTAMP_UPDATE_INTERVAL = 2500,
         AUTOPLAY_SEARCH_INTERVAL = 5000,
-        AUTOPLAY_ERROR_INTERVAL = 30000,  // 30s
+        AUTOPLAY_ERROR_INTERVAL = 30000, // 30s
         scriptUUID,
 
         Entity,
@@ -39,8 +39,8 @@
             updateTimestampTimer = null,
             ENTITY_NAME = "Recording",
             ENTITY_DESCRIPTION = "Avatar recording to play back",
-            ENTITIY_POSITION = { x: -16382, y: -16382, z: -16382 },  // Near but not right on domain corner.
-            ENTITY_SEARCH_DELTA = { x: 1, y: 1, z: 1 },  // Allow for position imprecision.
+            ENTITIY_POSITION = { x: -16382, y: -16382, z: -16382 }, // Near but not right on domain corner.
+            ENTITY_SEARCH_DELTA = { x: 1, y: 1, z: 1 }, // Allow for position imprecision.
             SEARCH_IDLE = 0,
             SEARCH_SEARCHING = 1,
             SEARCH_CLAIMING = 2,
@@ -61,7 +61,7 @@
 
             userData.timestamp = Date.now();
             Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
-            EntityViewer.queryOctree();  // Keep up to date ready for find().
+            EntityViewer.queryOctree(); // Keep up to date ready for find().
         }
 
         function id() {
@@ -96,7 +96,7 @@
 
             log("Create recording entity for " + filename);
 
-            if (updateTimestampTimer !== null) {  // Just in case.
+            if (updateTimestampTimer !== null) { // Just in case.
                 Script.clearInterval(updateTimestampTimer);
                 updateTimestampTimer = null;
             }
@@ -110,7 +110,7 @@
                 scriptUUID: scriptUUID,
                 isLooped: isLooped,
                 playerTime: uplayerTime,
-                isPlayFromCurrentLocation: isPlayFromCurrentLocation };
+                isPlayFromCurrentLocation: isPlayFromCurrentLocation,
                 timestamp: Date.now()
             };
 
@@ -166,80 +166,80 @@
 
             switch (searchState) {
 
-            case SEARCH_IDLE:
-                log("Start searching");
-                otherPlayersPlaying = [];
-                otherPlayersPlayingCounts = [];
-                Messages.subscribe(HIFI_RECORDER_CHANNEL);
-                Messages.messageReceived.connect(onMessageReceived);
-                searchState = SEARCH_SEARCHING;
-                break;
-
-            case SEARCH_SEARCHING:
-                // Find an entity that isn't being played or claimed.
-                entityIDs = Entities.findEntities(ENTITIY_POSITION, ENTITY_SEARCH_DELTA.x);
-                if (entityIDs.length > 0) {
-                    index = -1;
-                    while (!found && index < entityIDs.length - 1) {
-                        index += 1;
-                        if (otherPlayersPlaying.indexOf(entityIDs[index]) === -1) {
-                            properties = Entities.getEntityProperties(entityIDs[index], ["name", "userData"]);
-                            userData = JSON.parse(properties.userData);
-                            found = properties.name === ENTITY_NAME && userData.recording !== undefined;
-                        }
-                    }
-                }
-
-                // Claim entity if found.
-                if (found) {
-                    log("Claim entity " + entityIDs[index]);
-                    entityID = entityIDs[index];
-                    searchState = SEARCH_CLAIMING;
-                }
-                break;
-
-            case SEARCH_CLAIMING:
-                // How many other players are claiming (or playing) this entity?
-                index = otherPlayersPlaying.indexOf(entityID);
-                numberOfClaims = index !== -1 ? otherPlayersPlayingCounts[index] : 0;
-
-                // Have found an entity to play if no other players are also claiming it.
-                if (numberOfClaims === 0) {
-                    log("Complete claim " + entityID);
-                    Messages.messageReceived.disconnect(onMessageReceived);
-                    Messages.unsubscribe(HIFI_RECORDER_CHANNEL);
-                    searchState = SEARCH_IDLE;
-                    userData.scriptUUID = scriptUUID;
-                    userData.timestamp = Date.now();
-                    Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
-                    updateTimestampTimer = Script.setInterval(onUpdateTimestamp, TIMESTAMP_UPDATE_INTERVAL);
-                    result = {
-                        recording: userData.recording,
-                        position: userData.position,
-                        orientation: userData.orientation,
-                        isLooped: userData.isLooped,
-                        playerTime: userData.playerTime,
-                        isPlayFromCurrentLocation: userData.isPlayFromCurrentLocation };
-                    break;
-                }
-
-                // Otherwise back off for a bit before resuming search.
-                log("Release claim " + entityID + " and pause searching");
-                entityID = null;
-                pauseCount = randomInt(0, otherPlayersPlaying.length);
-                searchState = SEARCH_PAUSING;
-                break;
-
-            case SEARCH_PAUSING:
-                // Resume searching if have paused long enough.
-                pauseCount -= 1;
-                if (pauseCount < 0) {
-                    log("Resume searching");
+                case SEARCH_IDLE:
+                    log("Start searching");
                     otherPlayersPlaying = [];
                     otherPlayersPlayingCounts = [];
+                    Messages.subscribe(HIFI_RECORDER_CHANNEL);
+                    Messages.messageReceived.connect(onMessageReceived);
                     searchState = SEARCH_SEARCHING;
-                }
-                break;
+                    break;
+
+                case SEARCH_SEARCHING:
+                // Find an entity that isn't being played or claimed.
+                    entityIDs = Entities.findEntities(ENTITIY_POSITION, ENTITY_SEARCH_DELTA.x);
+                    if (entityIDs.length > 0) {
+                        index = -1;
+                        while (!found && index < entityIDs.length - 1) {
+                            index += 1;
+                            if (otherPlayersPlaying.indexOf(entityIDs[index]) === -1) {
+                                properties = Entities.getEntityProperties(entityIDs[index], ["name", "userData"]);
+                                userData = JSON.parse(properties.userData);
+                                found = properties.name === ENTITY_NAME && userData.recording !== undefined;
+                            }
+                        }
+                    }
+
+                    // Claim entity if found.
+                    if (found) {
+                        log("Claim entity " + entityIDs[index]);
+                        entityID = entityIDs[index];
+                        searchState = SEARCH_CLAIMING;
+                    }
+                    break;
+
+                case SEARCH_CLAIMING:
+                // How many other players are claiming (or playing) this entity?
+                    index = otherPlayersPlaying.indexOf(entityID);
+                    numberOfClaims = index !== -1 ? otherPlayersPlayingCounts[index] : 0;
+
+                    // Have found an entity to play if no other players are also claiming it.
+                    if (numberOfClaims === 0) {
+                        log("Complete claim " + entityID);
+                        Messages.messageReceived.disconnect(onMessageReceived);
+                        Messages.unsubscribe(HIFI_RECORDER_CHANNEL);
+                        searchState = SEARCH_IDLE;
+                        userData.scriptUUID = scriptUUID;
+                        userData.timestamp = Date.now();
+                        Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
+                        updateTimestampTimer = Script.setInterval(onUpdateTimestamp, TIMESTAMP_UPDATE_INTERVAL);
+                        result = {
+                            recording: userData.recording,
+                            position: userData.position,
+                            orientation: userData.orientation,
+                            isLooped: userData.isLooped,
+                            playerTime: userData.playerTime,
+                            isPlayFromCurrentLocation: userData.isPlayFromCurrentLocation };
+                        break;
+                    }
+
+                    // Otherwise back off for a bit before resuming search.
+                    log("Release claim " + entityID + " and pause searching");
+                    entityID = null;
+                    pauseCount = randomInt(0, otherPlayersPlaying.length);
+                    searchState = SEARCH_PAUSING;
+                    break;
+
+                case SEARCH_PAUSING:
+                // Resume searching if have paused long enough.
+                    pauseCount -= 1;
+                    if (pauseCount < 0) {
+                        log("Resume searching");
+                        otherPlayersPlaying = [];
+                        otherPlayersPlayingCounts = [];
+                        searchState = SEARCH_SEARCHING;
+                    }
+                    break;
             }
 
             EntityViewer.queryOctree();
@@ -248,12 +248,12 @@
 
         destroy = function () {
             // Delete current persistence entity.
-            if (entityID !== null) {  // Just in case.
+            if (entityID !== null) { // Just in case.
                 Entities.deleteEntity(entityID);
                 entityID = null;
                 searchState = SEARCH_IDLE;
             }
-            if (updateTimestampTimer !== null) {  // Just in case.
+            if (updateTimestampTimer !== null) { // Just in case.
                 Script.clearInterval(updateTimestampTimer);
                 updateTimestampTimer = null;
             }
@@ -308,7 +308,7 @@
             }));
         }
 
-        function loadRecording(recording){
+        function loadRecording(recording, isManual){
             Recording.loadRecording(recording, function (success) {
                 var errorMessage;
 
@@ -318,16 +318,16 @@
                 } else {
                     if (isManual) {
                         // Delete persistence entity if manual play request.
-                        Entity.destroyLater();  // Schedule for deletion; works around timer threading issues.
+                        Entity.destroyLater(); // Schedule for deletion; works around timer threading issues.
                     }
 
-                    errorMessage = "Could not load recording " + recording.slice(4);  // Remove leading "atp:".
+                    errorMessage = "Could not load recording " + recording.slice(4); // Remove leading "atp:".
                     log(errorMessage);
                     error(errorMessage);
 
                     isPlayingRecording = false;
                     recordingFilename = "";
-                    autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL);  // Try again later.
+                    autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL); // Try again later.
                 }
             });
         }
@@ -335,7 +335,7 @@
         function play(user, position, orientation, isLooped, playerTime, isPlayFromCurrentLocation) {
             var errorMessage;
 
-            if (autoPlayTimer) {  // Cancel auto-play.
+            if (autoPlayTimer) { // Cancel auto-play.
                 // FIXME: Once in a while Script.clearTimeout() fails.
                 // [DEBUG] [hifi.scriptengine] [3748] [agent] stopTimer -- not in _timerFunctionMap QObject(0x0)
                 Script.clearTimeout(autoPlayTimer);
@@ -346,14 +346,14 @@
 
             if (Entity.create(recording, position, orientation, isLooped, playerTime, isPlayFromCurrentLocation) && recordingLoaded) {
                 log("Play recording " + recordingFilename);
-                isPlayingRecording = true;  // Immediate feedback.
+                isPlayingRecording = true; // Immediate feedback.
                 playRecording(position, orientation, true, isLooped, playerTime, isPlayFromCurrentLocation);
             } else {
-                errorMessage = "Could not persist recording " + recording.slice(4);  // Remove leading "atp:".
+                errorMessage = "Could not persist recording " + recording.slice(4); // Remove leading "atp:".
                 log(errorMessage);
                 error(errorMessage);
 
-                autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL);  // Resume auto-play later.
+                autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL); // Resume auto-play later.
             }
         }
 
@@ -373,11 +373,11 @@
                     log("Play persisted recording " + recording.recording);
                     userID = null;
                     autoPlayTimer = null;
-                    isPlayingRecording = true;  // Immediate feedback.
+                    isPlayingRecording = true; // Immediate feedback.
                     recordingFilename = recording.recording;
                     playRecording(recording.position, recording.orientation, false, recording.isLooped, recording.playerTime, recording.isPlayFromCurrentLocation);
                 } else {
-                    autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_SEARCH_INTERVAL);  // Try again soon.
+                    autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_SEARCH_INTERVAL); // Try again soon.
                 }
             }, Math.random() * AUTOPLAY_SEARCH_DELTA);
         };
@@ -422,7 +422,7 @@
             return isPlayingRecording;
         }
 
-        function isLoaded() {
+        function isClipLoaded() {
             return isLoaded;
         }
 
@@ -448,7 +448,7 @@
             play: play,
             stop: stop,
             isPlaying: isPlaying,
-            isLoaded: isLoaded,
+            isClipLoaded: isClipLoaded,
             recording: recording,
             setUp: setUp,
             tearDown: tearDown
@@ -459,7 +459,7 @@
         Messages.sendMessage(HIFI_RECORDER_CHANNEL, JSON.stringify({
             playing: Player.isPlaying(),
             recording: Player.recording(),
-            loaded: Player.isLoaded(),
+            loaded: Player.isClipLoaded(),
             entity: Entity.id()
         }));
     }
@@ -488,23 +488,23 @@
         message = JSON.parse(message);
         if (message.player === scriptUUID) {
             switch (message.command) {
-            case PLAYER_COMMAND_LOAD:
-                Player.load(message.recording);
-                sendHeartbeat();
-                break;
-            case PLAYER_COMMAND_PLAY:
-                if (!Player.isPlaying()) {
-                    Player.play(sender, message.position, message.orientation, message.isLooped, message.playerTime, message.isPlayFromCurrentLocation);
-                } else {
-                    log("Didn't start playing " + message.recording + " because already playing " + Player.recording());
-                }
-                sendHeartbeat();
-                break;
-            case PLAYER_COMMAND_STOP:
-                Player.stop();
-                Player.autoPlay();  // There may be another recording to play.
-                sendHeartbeat();
-                break;
+                case PLAYER_COMMAND_LOAD:
+                    Player.load(message.recording);
+                    sendHeartbeat();
+                    break;
+                case PLAYER_COMMAND_PLAY:
+                    if (!Player.isPlaying()) {
+                        Player.play(sender, message.position, message.orientation, message.isLooped, message.playerTime, message.isPlayFromCurrentLocation);
+                    } else {
+                        log("Didn't start playing " + message.recording + " because already playing " + Player.recording());
+                    }
+                    sendHeartbeat();
+                    break;
+                case PLAYER_COMMAND_STOP:
+                    Player.stop();
+                    Player.autoPlay(); // There may be another recording to play.
+                    sendHeartbeat();
+                    break;
             }
         }
     }

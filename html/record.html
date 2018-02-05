@@ -13,10 +13,10 @@
         <title>Record</title>
         <link rel="stylesheet" type="text/css" href="css/edit-style.css">
         <link rel="stylesheet" type="text/css" href="css/record.css">
-        <link rel="stylesheet" type="text/css" href="libs/bootstrap-4.0.0-beta.3-dist/css/bootstrap.min.css">
+        <!-- <link rel="stylesheet" type="text/css" href="libs/bootstrap-4.0.0-beta.3-dist/css/bootstrap.min.css"> -->
         <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-        <script type="text/javascript" src="libs/bootstrap-4.0.0-beta.3-dist/js/bootstrap.min.js"></script>
+        <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script> -->
+        <!-- <script type="text/javascript" src="libs/bootstrap-4.0.0-beta.3-dist/js/bootstrap.min.js"></script> -->
         <script type="text/javascript" src="js/record.js"></script>
     </head>
     <body>
@@ -27,18 +27,30 @@
         <div id="recordings">
             <div id="table-container">
                 <table id="recordings-table">
-                    <colgroup>
+                    <!-- <colgroup>
+                        <col />
+                        <col />
+                        <col />
                         <col />
                         <col id="unload-column" />
-                    </colgroup>
+                    </colgroup> -->
                     <thead>
                         <tr>
-                            <th>Recordings Being Played</th>
+                            <th>Recording</th>
+                            <th>Time</th>
+                            <th>OffSet</th>
+                            <th>In Time</th>
                             <th>Unload</th>
                         </tr>
                     </thead>
                     <tbody id="recordings-list">
-                        <tr><td>Filename</td><td><input type="button" class="glyph red" value="w" playerID=id /></td></tr>
+                        <tr>
+                            <td>Filename1</td>
+                            <td>00.00</td>
+                            <td>00.00</td>
+                            <td>00.00</td>
+                            <td><input type="button" class="glyph red" value="w" playerID="id" /></td>
+                        </tr>
                     </tbody>
                     <tbody id="instructions" class="hidden">
                         <tr>
@@ -75,19 +87,35 @@
             <span id="countdown-number">3</span>
         </div>
         <div id="record-controls">
-            <div id="load-container">
-                <input id="load-button" type="button" value="Load" disabled />
+            <div id="button-group-one">
+                <div id="load-container">
+                    <input id="load-button" type="button" value="Load" disabled />
+                </div>
+                <div id="record-container">
+                    <input id="record-button" class="red" type="button" value="Record" />
+                </div>
+                <div id="play-container">
+                    <input id="play-button" class="green" type="button" value="Play" />
+                </div>
             </div>
-            <div id="record-container">
-                <input id="record-button" class="red" type="button" value="Record" />
+            <div id="button-group-two">
+                <div id="pause-container">
+                    <input id="pause-button" class="green" type="button" value="Pause" />
+                </div>
+                <div id="start-container">
+                    <input id="start-button" class="green" type="button" value="Start" />
+                </div>
+                <div id="end-container">
+                    <input id="end-button" class="green" type="button" value="End" />
+                </div>
             </div>
             <div id="checkbox-container" class="property checkbox">
-                <input type="checkbox" id="finish-on-open">
-                <label for="finish-on-open" id="finish-on-open-label">Stop recording automatically when ...</label>
                 <input type="checkbox" id="loop-recordings">
-                <label for="loop-recordings" id="loop-recordings-label">Loop Recordings</label>
+                <label for="loop-recordings" id="loop-recordings-label">Loop Recordings from begninning</label>
                 <input type="checkbox" id="play-from-current-location">
                 <label for="play-from-current-location" id="play-from-current-location-label">Play from current location</label>
+                <input type="checkbox" id="finish-on-open">
+                <label for="finish-on-open" id="finish-on-open-label">Stop recording automatically when ...</label>
             </div>
         </div>
         <script>

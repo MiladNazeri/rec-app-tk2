@@ -14,7 +14,9 @@ var isUsingToolbar = false,
     isDisplayingInstructions = false,
     isRecording = false,
     numberOfPlayers = 0,
-    recordingsBeingPlayed = [],
+    // recordingsBeingPlayed = [],
+    recordingsLoaded = [],
+    playersThatAreLoaded,
     elRecordings,
     elRecordingsTable,
     elRecordingsList,
@@ -22,10 +24,16 @@ var isUsingToolbar = false,
     elPlayersUnused,
     elHideInfoButton,
     elShowInfoButton,
+
     elLoadButton,
+    elRecordButton,
+    elPlayButton,
+    elPauseButton,
+    elStartButton,
+    elEndButton,
+
     elSpinner,
     elCountdownNumber,
-    elRecordButton,
     elFinishOnOpen,
     elFinishOnOpenLabel,
     elLoopRecordings,
@@ -35,31 +43,44 @@ var isUsingToolbar = false,
     EVENT_BRIDGE_TYPE = "record",
     BODY_LOADED_ACTION = "bodyLoaded",
     USING_TOOLBAR_ACTION = "usingToolbar",
-    RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
-    PLAYERS_THAT_ARE_LOADED_ACTION = "playersThatAreLoaded",
+    // RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
+    RECORDINGS_LOADED_ACTION = "recordingsLoaded",
+    // PLAYERS_THAT_ARE_LOADED_ACTION = "playersThatAreLoaded",
     NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
-    STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
+    REMOVE_RECORDING_ACTION = "removeRecordingAction",
+    // STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
     LOAD_RECORDING_ACTION = "loadRecording",
-    PLAY_RECORDING_ACTION = "playRecording",
     START_RECORDING_ACTION = "startRecording",
-    SET_COUNTDOWN_NUMBER_ACTION = "setCountdownNumber",
     STOP_RECORDING_ACTION = "stopRecording",
+    STOP_RECORDINGS_ACTION = "stopRecordings",
+    PLAY_RECORDINGS_ACTION = "playRecordings",
+    PAUSE_RECORDINGS_ACTION = "pauseRecordings",
+    START_OF_RECORDINGS_ACTION = "startOfRecordings",
+    END_OF_RECORDINGS_ACTION = "endOfRecordings",
+
+    SET_COUNTDOWN_NUMBER_ACTION = "setCountdownNumber",
+
     LOOP_RECORDINGS_ACTION = "loopRecordings",
     PLAY_FROM_CURRENT_LOCATION_ACTION = "playFromCurrentLocation",
     FINISH_ON_OPEN_ACTION = "finishOnOpen";
 
 
-function stopPlayingRecording(event) {
+function removeRecording(event) {
     var playerID = event.target.getAttribute("playerID");
     EventBridge.emitWebEvent(JSON.stringify({
         type: EVENT_BRIDGE_TYPE,
-        action: STOP_PLAYING_RECORDING_ACTION,
+        action: REMOVE_RECORDING_ACTION,
         value: playerID
     }));
 }
 
+function changeFileName(event) {}
+function changeOffsetTime(event) {}
+function changeInTime(event) {}
+
+
 function updatePlayersUnused() {
-    elPlayersUnused.innerHTML = numberOfPlayers - recordingsBeingPlayed.length;
+    elPlayersUnused.innerHTML = numberOfPlayers - recordingsLoaded.length;
 }
 
 function updateRecordings() {
@@ -67,12 +88,38 @@ function updateRecordings() {
         tr,
         td,
         input,
+        fileNameInput,
+        offsetInput,
+        inTimeInput,
         ths,
+        trs,
         tds,
         length,
         i,
-        HIFI_GLYPH_CLOSE = "w";
-
+        HIFI_GLYPH_CLOSE = "w",
+        recordingsLoadedTest = [
+            {
+                fileName: "abcabcabcabcabcabc",
+                playerId: "a",
+                clipTime: "00.00",
+                offSetTime: "00.00",
+                inTime: "00.00"
+            },
+            {
+                fileName: "b",
+                playerId: "a",
+                clipTime: "00.00",
+                offSetTime: "00.00",
+                inTime: "00.00"
+            },
+            // {
+            //     fileName: "fileName2",
+            //     playerId: "playerId",
+            //     clipTime: "00.00",
+            //     offSetTime: "00.0013123123",
+            //     inTime: "00.00"
+            // }
+        ];
     tbody = document.createElement("tbody");
     tbody.id = "recordings-list";
 
@@ -80,28 +127,65 @@ function updateRecordings() {
     // <tr><td>Filename</td><td><input type="button" class="glyph red" value="w" playerID=id /></td></tr>
     // <tr><td>Filename</td><td><input type="button" class="glyph red" value="w" playerID=id /></td></tr>
 
-    for (i = 0, length = recordingsBeingPlayed.length; i < length; i += 1) {
+    for (i = 0, length = recordingsLoaded.length; i < length; i += 1) {
+        // alert(JSON.stringify(recordingsLoadedTest[i]) + " ::: " + i)
         tr = document.createElement("tr");
+
         td = document.createElement("td");
-        td.innerHTML = recordingsBeingPlayed[i].filename.slice(4);
+        fileNameInput = document.createElement("input");
+        fileNameInput.setAttribute("type", "text");
+        fileNameInput.setAttribute("size", 10);
+        fileNameInput.setAttribute("class", "record-edit-input");
+        fileNameInput.setAttribute("value", recordingsLoaded[i].fileName);
+        // fileNameInput.setAttribute("placeholder", recordingsLoaded[i].fileName);
+        fileNameInput.addEventListener("change", changeFileName);
+        td.appendChild(fileNameInput);
+        // td.innerHTML = recordingsLoadedTest[i].filename.slice(4);
         tr.appendChild(td);
+
+        td = document.createElement("td");
+        td.innerHTML = recordingsLoaded[i].clipTime;
+        tr.appendChild(td);
+
+        td = document.createElement("td");
+        offsetInput = document.createElement("input");
+        offsetInput.setAttribute("type", "text");
+        offsetInput.setAttribute("size", 5);
+        offsetInput.setAttribute("class", "record-edit-input");
+        offsetInput.setAttribute("value", recordingsLoaded[i].offSetTime);
+        offsetInput.addEventListener("change", changeOffsetTime);
+        td.appendChild(offsetInput);
+        tr.appendChild(td);
+
+        td = document.createElement("td");
+        inTimeInput = document.createElement("input");
+        inTimeInput.setAttribute("type", "text");
+        inTimeInput.setAttribute("size", 5);
+        inTimeInput.setAttribute("class", "record-edit-input");
+        inTimeInput.setAttribute("value", recordingsLoaded[i].inTime);
+        inTimeInput.addEventListener("change", changeInTime);
+        td.appendChild(inTimeInput);
+        tr.appendChild(td);
+
         td = document.createElement("td");
         input = document.createElement("input");
         input.setAttribute("type", "button");
         input.setAttribute("class", "glyph red");
         input.setAttribute("value", HIFI_GLYPH_CLOSE);
-        input.setAttribute("playerID", recordingsBeingPlayed[i].playerID);
-        input.addEventListener("click", stopPlayingRecording);
+        input.setAttribute("playerID", recordingsLoaded[i].playerID);
+        input.addEventListener("click", removeRecording);
         td.appendChild(input);
         tr.appendChild(td);
+
         tbody.appendChild(tr);
     }
 
     // Empty rows representing available players.
-    for (i = recordingsBeingPlayed.length, length = numberOfPlayers; i < length; i += 1) {
+    for (i = recordingsLoaded.length, length = numberOfPlayers; i < length; i += 1) {
+        // alert(numberOfPlayers);
         tr = document.createElement("tr");
         td = document.createElement("td");
-        td.colSpan = 2;
+        td.colSpan = 5;
         tr.appendChild(td);
         tbody.appendChild(tr);
     }
@@ -110,7 +194,7 @@ function updateRecordings() {
     tr = document.createElement("tr");
     tr.classList.add("filler");
     td = document.createElement("td");
-    td.colSpan = 2;
+    td.colSpan = 5;
     tr.appendChild(td);
     tbody.appendChild(tr);
 
@@ -119,11 +203,27 @@ function updateRecordings() {
     elRecordingsList = document.getElementById("recordings-list");
 
     // Update header cell widths to match content widths.
-    ths = document.querySelectorAll("#recordings-table thead th");
-    tds = document.querySelectorAll("#recordings-table tbody tr:first-child td");
-    for (i = 0; i < ths.length; i += 1) {
-        ths[i].width = tds[i].offsetWidth;
-    }
+    // ths = document.querySelectorAll("#recordings-table thead th");
+    // trs = document.querySelectorAll("#recordings-table tbody tr");
+    //
+    // var largestWidthsArray = [];
+    // for (i = 0; i < trs.length; i += 1) {
+    //     // tds = Array.prototype.slice.call(trs[i].children);
+    //     tds = trs[i].children;
+    //     // alert(JSON.stringify(tds))
+    //     // alert(JSON.stringify(tds[0]));
+    //     for (var j = 0; j < tds.length; j += 1){
+    //         // alert(tds[j].offSetWidth);
+    //         largestWidthsArray[j] = largestWidthsArray[j] > tds[j].offSetWidth
+    //         ? largestWidthsArray[j]
+    //         : tds[j].offSetWidth;
+    //     }
+    // }
+    // for (i = 0; i < ths.legnth; i += 1 ){
+    //     ths[i].width = largestWidthsArray[i];
+    //
+    // }
+
 }
 
 function updateInstructions() {
@@ -155,9 +255,9 @@ function hideInstructions() {
     isDisplayingInstructions = false;
     updateInstructions();
 }
-
+// done
 function updateLoadButton() {
-    if (isRecording || numberOfPlayers <= recordingsBeingPlayed.length) {
+    if (isRecording || numberOfPlayers <= recordingsLoaded.length) {
         elLoadButton.setAttribute("disabled", "disabled");
     } else {
         elLoadButton.removeAttribute("disabled");
@@ -201,19 +301,32 @@ function onScriptEventReceived(data) {
         case SET_COUNTDOWN_NUMBER_ACTION:
             elCountdownNumber.innerHTML = message.value;
             break;
+        // case REMOVE_RECORDING_ACTION:
+        //     isRecording = false;
+        //     elRecordButton.value = "Record";
+        //     updateSpinner();
+        //     updateLoadButton();
+        //     break;
         case STOP_RECORDING_ACTION:
             isRecording = false;
             elRecordButton.value = "Record";
             updateSpinner();
             updateLoadButton();
             break;
-        case RECORDINGS_BEING_PLAYED_ACTION:
-            recordingsBeingPlayed = JSON.parse(message.value);
+        case RECORDINGS_LOADED_ACTION:
+            recordingsLoaded = JSON.parse(message.value);
             updateRecordings();
             updatePlayersUnused();
             updateInstructions();
             updateLoadButton();
             break;
+        // case RECORDINGS_BEING_PLAYED_ACTION:recordingsLoaded
+        //     recordingsBeingPlayed = JSON.parse(message.value);
+        //     updateRecordings();
+        //     updatePlayersUnused();
+        //     updateInstructions();
+        //     updateLoadButton();
+        //     break;
         case PLAYERS_THAT_ARE_LOADED_ACTION:
             playersThatAreLoaded = JSON.parse(message.value);
             updateRecordings();
@@ -259,6 +372,34 @@ function onRecordButtonClicked() {
         updateSpinner();
         updateLoadButton();
     }
+}
+
+function onPlayButtonClicked() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: EVENT_BRIDGE_TYPE,
+        action: PLAY_RECORDING_ACTION
+    }));
+}
+
+function onPauseButtonClicked() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: EVENT_BRIDGE_TYPE,
+        action: PAUSE_RECORDING_ACTION
+    }));
+}
+
+function onStartButtonClicked() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: EVENT_BRIDGE_TYPE,
+        action: START_OF_RECORDING_ACTION
+    }));
+}
+
+function onEndButtonClicked() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: EVENT_BRIDGE_TYPE,
+        action: END_OF_RECORDING_ACTION
+    }));
 }
 
 function onFinishOnOpenClicked() {
@@ -311,12 +452,20 @@ function onBodyLoaded() {
 
     elLoadButton = document.getElementById("load-button");
     elLoadButton.onclick = onLoadButtonClicked;
+    elRecordButton = document.getElementById("record-button");
+    elRecordButton.onclick = onRecordButtonClicked;
+    elPlayButton = document.getElementById("play-button");
+    elPlayButton.onclick = onPlayButtonClicked;
+
+    elPauseButton = document.getElementById("pause-button");
+    elPauseButton.onclick = onPauseButtonClicked;
+    elStartButton = document.getElementById("start-button");
+    elStartButton.onclick = onStartButtonClicked;
+    elEndButton = document.getElementById("end-button");
+    elEndButton.onclick = onEndButtonClicked;
 
     elSpinner = document.getElementById("spinner");
     elCountdownNumber = document.getElementById("countdown-number");
-
-    elRecordButton = document.getElementById("record-button");
-    elRecordButton.onclick = onRecordButtonClicked;
 
     elFinishOnOpen = document.getElementById("finish-on-open");
     elFinishOnOpen.onclick = onFinishOnOpenClicked;
@@ -329,7 +478,7 @@ function onBodyLoaded() {
     elLoopRecordingsLabel = document.getElementById("loop-recordings-label");
 
     playFromCurrentLocation = document.getElementById("play-from-current-location");
-    playFromCurrentLocation.onclick = playFromCurrentLocationClicked;
+    playFromCurrentLocation.onclick = onPlayFromCurrentLocationClicked;
 
     playFromCurrentLocationLabel = document.getElementById("play-from-current-location-label");
 

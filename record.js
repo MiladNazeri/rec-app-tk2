@@ -26,7 +26,7 @@
         Player,
         Dialog,
 
-        SCRIPT_STARTUP_DELAY = 3000;  // 3s
+        SCRIPT_STARTUP_DELAY = 3000; // 3s
 
     function log(message) {
         print(APP_NAME + ": " + message);
@@ -54,7 +54,7 @@
         function show() {
             // Create both overlays in case user switches desktop/HMD mode.
             var screenSize = Controller.getViewportDimensions(),
-                recordingText = "REC",  // Unicode circle \u25cf doesn't render in HMD.
+                recordingText = "REC", // Unicode circle \u25cf doesn't render in HMD.
                 CAMERA_JOINT_INDEX = -7;
 
             if (HMD.active) {
@@ -161,9 +161,9 @@
 
             log("Recording saved to Asset Server as " + url);
 
-            filename = (new Date()).toISOString();  // yyyy-mm-ddThh:mm:ss.sssZ
-            filename = filename.replace(/[\-:]|\.\d*Z$/g, "").replace("T", "-") + ".hfr";  // yyyymmmdd-hhmmss.hfr
-            hash = url.slice(4);  // Remove leading "atp:" from url.
+            filename = (new Date()).toISOString(); // yyyy-mm-ddThh:mm:ss.sssZ
+            filename = filename.replace(/[\-:]|\.\d*Z$/g, "").replace("T", "-") + ".hfr"; // yyyymmmdd-hhmmss.hfr
+            hash = url.slice(4); // Remove leading "atp:" from url.
             mappingPath = "/recordings/" + filename;
             Assets.setMapping(mappingPath, hash, setMappingCallback);
         }
@@ -281,14 +281,14 @@
             PLAYER_COMMAND_LOAD = "load",
             PLAYER_COMMAND_STOP = "stop",
 
-            playerIDs = [],             // UUIDs of AC player scripts.
-            playerIsPlayings = [],      // True if AC player script is playing a recording.
-            playerIsLoadeds  = [],
-            playerRecordings = [],      // Assignment client mappings of recordings being played.
-            playerTimestamps = [],      // Timestamps of last heartbeat update from player script.
+            playerIDs = [], // UUIDs of AC player scripts.
+            playerIsPlayings = [], // True if AC player script is playing a recording.
+            playerIsLoadeds = [],
+            playerRecordings = [], // Assignment client mappings of recordings being played.
+            playerTimestamps = [], // Timestamps of last heartbeat update from player script.
 
             updateTimer,
-            UPDATE_INTERVAL = 5000;  // Must be > player's HEARTBEAT_INTERVAL.
+            UPDATE_INTERVAL = 5000; // Must be > player's HEARTBEAT_INTERVAL.
 
         function numberOfPlayers() {
             return playerIDs.length;
@@ -343,7 +343,7 @@
             index = playerIsPlayings.indexOf(false);
             if (index === -1) {
                 error("No player instance available to play recording "
-                    + recording.slice(4) + "!");  // Remove leading "atp:" from recording.
+                    + recording.slice(4) + "!"); // Remove leading "atp:" from recording.
                 return;
             }
 
@@ -364,14 +364,14 @@
             index = playerIsPlayings.indexOf(false);
             if (index === -1) {
                 error("No player instance available to play recording "
-                    + recording.slice(4) + "!");  // Remove leading "atp:" from recording.
+                    + recording.slice(4) + "!"); // Remove leading "atp:" from recording.
                 return;
             }
 
             Messages.sendMessage(HIFI_PLAYER_CHANNEL, JSON.stringify({
                 player: playerIDs[index],
                 command: PLAYER_COMMAND_LOAD,
-                recording: recording,
+                recording: recording
             }));
         }
 
@@ -453,8 +453,9 @@
             EVENT_BRIDGE_TYPE = "record",
             BODY_LOADED_ACTION = "bodyLoaded",
             USING_TOOLBAR_ACTION = "usingToolbar",
-            RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
-            PLAYERS_THAT_ARE_LOADED_ACTION = "playersThatAreLoaded"
+            RECORDINGS_LOADED_ACTION = "recordingsLoaded",
+            // RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
+            // PLAYERS_THAT_ARE_LOADED_ACTION = "playersThatAreLoaded",
             NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
             STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
             LOAD_RECORDING_ACTION = "loadRecording",
@@ -463,9 +464,9 @@
             SET_COUNTDOWN_NUMBER_ACTION = "setCountdownNumber",
             STOP_RECORDING_ACTION = "stopRecording",
             FINISH_ON_OPEN_ACTION = "finishOnOpen",
-            SETTINGS_FINISH_ON_OPEN = "record/finishOnOpen"
+            SETTINGS_FINISH_ON_OPEN = "record/finishOnOpen",
             LOOP_RECORDINGS_ACTION = "loopRecordings",
-            SETTINGS_LOOP_RECORDINGS_ACTION = "record/loopRecordings"
+            SETTINGS_LOOP_RECORDINGS_ACTION = "record/loopRecordings",
             PLAY_FROM_CURRENT_LOCATION_ACTION = "playFromCurrentLocation",
             SETTINGS_PLAY_FROM_CURRENT_LOCATION_ACTION = "record/playFromCurrentLocation";
 
@@ -493,40 +494,34 @@
             }
         }
 
-        function updatePlayerDetails(playerIsPlayings, playerRecordings,  playerIsLoadeds, playerIDs) {
-            var recordingsBeingPlayed = [],
-                playersLoaded = [],
+        function updatePlayerDetails(playerIsPlayings, playerRecordings, playerIsLoadeds, playerIDs) {
+            var recordingsLoaded = [],
                 length,
                 i;
 
             for (i = 0, length = playerIsPlayings.length; i < length; i += 1) {
                 if (playerIsPlayings[i]) {
-                    recordingsBeingPlayed.push({
-                        filename: playerRecordings[i],
+                    recordingsLoaded.push({
+                        filename: playerRecordings[i].filename,
+                        offSetTime: playerRecordings[i].offSetTime,
+                        clipTime: playerRecordings[i].clipTime,
+                        inTime: playerRecordings[i].inTime,
                         playerID: playerIDs[i]
                     });
                 }
             }
 
-            for (i = 0, length = playerIsLoadeds.length; i < length; i += 1) {
-                if (playerIsLoadeds[i]) {
-                    playersLoaded.push({
-                        filename: playerRecordings[i],
-                        playerID: playerIDs[i]
-                    });
-                }
-            }
             tablet.emitScriptEvent(JSON.stringify({
                 type: EVENT_BRIDGE_TYPE,
-                action: RECORDINGS_BEING_PLAYED_ACTION,
-                value: JSON.stringify(recordingsBeingPlayed)
+                action: RECORDINGS_LOADED_ACTION,
+                value: JSON.stringify(recordingsLoaded)
             }));
 
-            tablet.emitScriptEvent(JSON.stringify({
-                type: EVENT_BRIDGE_TYPE,
-                action: PLAYERS_THAT_ARE_LOADED_ACTION,
-                value: JSON.stringify(playersLoaded)
-            }));
+            // tablet.emitScriptEvent(JSON.stringify({
+            //     type: EVENT_BRIDGE_TYPE,
+            //     action: PLAYERS_THAT_ARE_LOADED_ACTION,
+            //     value: JSON.stringify(playersLoaded)
+            // }));
 
             tablet.emitScriptEvent(JSON.stringify({
                 type: EVENT_BRIDGE_TYPE,
@@ -566,78 +561,78 @@
             message = JSON.parse(data);
             if (message.type === EVENT_BRIDGE_TYPE) {
                 switch (message.action) {
-                case BODY_LOADED_ACTION:
+                    case BODY_LOADED_ACTION:
                     // Dialog's ready; initialize its state.
-                    tablet.emitScriptEvent(JSON.stringify({
-                        type: EVENT_BRIDGE_TYPE,
-                        action: USING_TOOLBAR_ACTION,
-                        value: isUsingToolbar()
-                    }));
-                    tablet.emitScriptEvent(JSON.stringify({
-                        type: EVENT_BRIDGE_TYPE,
-                        action: FINISH_ON_OPEN_ACTION,
-                        value: isFinishOnOpen
-                    }));
-                    tablet.emitScriptEvent(JSON.stringify({
-                        type: EVENT_BRIDGE_TYPE,
-                        action: LOOP_RECORDINGS_ACTION,
-                        value: isLoopRecordings
-                    }));
-                    tablet.emitScriptEvent(JSON.stringify({
-                        type: EVENT_BRIDGE_TYPE,
-                        action: PLAY_FROM_CURRENT_LOCATION_ACTION,
-                        value: isPlayFromCurrentLocation
-                    }));
-                    tablet.emitScriptEvent(JSON.stringify({
-                        type: EVENT_BRIDGE_TYPE,
-                        action: NUMBER_OF_PLAYERS_ACTION,
-                        value: Player.numberOfPlayers()
-                    }));
-                    updateRecordingStatus(!Recorder.isIdle());
-                    UserActivityLogger.logAction("record_open_dialog", logDetails());
-                    break;
-                case STOP_PLAYING_RECORDING_ACTION:
+                        tablet.emitScriptEvent(JSON.stringify({
+                            type: EVENT_BRIDGE_TYPE,
+                            action: USING_TOOLBAR_ACTION,
+                            value: isUsingToolbar()
+                        }));
+                        tablet.emitScriptEvent(JSON.stringify({
+                            type: EVENT_BRIDGE_TYPE,
+                            action: FINISH_ON_OPEN_ACTION,
+                            value: isFinishOnOpen
+                        }));
+                        tablet.emitScriptEvent(JSON.stringify({
+                            type: EVENT_BRIDGE_TYPE,
+                            action: LOOP_RECORDINGS_ACTION,
+                            value: isLoopRecordings
+                        }));
+                        tablet.emitScriptEvent(JSON.stringify({
+                            type: EVENT_BRIDGE_TYPE,
+                            action: PLAY_FROM_CURRENT_LOCATION_ACTION,
+                            value: isPlayFromCurrentLocation
+                        }));
+                        tablet.emitScriptEvent(JSON.stringify({
+                            type: EVENT_BRIDGE_TYPE,
+                            action: NUMBER_OF_PLAYERS_ACTION,
+                            value: Player.numberOfPlayers()
+                        }));
+                        updateRecordingStatus(!Recorder.isIdle());
+                        UserActivityLogger.logAction("record_open_dialog", logDetails());
+                        break;
+                    case STOP_PLAYING_RECORDING_ACTION:
                     // Stop the specified player.
-                    log("Unload recording " + message.value);
-                    Player.stopPlayingRecording(message.value);
-                    break;
-                case LOAD_RECORDING_ACTION:
+                        log("Unload recording " + message.value);
+                        Player.stopPlayingRecording(message.value);
+                        break;
+                    case LOAD_RECORDING_ACTION:
                     // User wants to select an ATP recording to play.
-                    Window.assetsDirChanged.connect(onAssetsDirChanged);
-                    Window.browseAssetsAsync("Select Recording to Play", "recordings", "*.hfr");
-                    break;
-                case PLAY_RECORDING_ACTION:
-                    Player.playRecording(MyAvatar.position, MyAvatar.orientation, message.value.isLooped, message.value.isPlayerTime, message.value.isPlayFromCurrentLocation);
-                    break;
-                case START_RECORDING_ACTION:
+                        Window.assetsDirChanged.connect(onAssetsDirChanged);
+                        Window.browseAssetsAsync("Select Recording to Play", "recordings", "*.hfr");
+                        break;
+                    case PLAY_RECORDING_ACTION:
+                        Player.playRecording(MyAvatar.position, MyAvatar.orientation, message.value.isLooped, message.value.isPlayerTime, message.value.isPlayFromCurrentLocation);
+                        break;
+                    case START_RECORDING_ACTION:
                     // Start making a recording.
-                    if (Recorder.isIdle()) {
-                        Recorder.startCountdown();
-                    }
-                    break;
-                case STOP_RECORDING_ACTION:
+                        if (Recorder.isIdle()) {
+                            Recorder.startCountdown();
+                        }
+                        break;
+                    case STOP_RECORDING_ACTION:
                     // Cancel or finish a recording.
-                    if (Recorder.isCountingDown()) {
-                        Recorder.cancelCountdown();
-                    } else if (Recorder.isRecording()) {
-                        Recorder.finishRecording();
-                    }
-                    break;
-                case FINISH_ON_OPEN_ACTION:
+                        if (Recorder.isCountingDown()) {
+                            Recorder.cancelCountdown();
+                        } else if (Recorder.isRecording()) {
+                            Recorder.finishRecording();
+                        }
+                        break;
+                    case FINISH_ON_OPEN_ACTION:
                     // Set behavior on dialog open.
-                    isFinishOnOpen = message.value;
-                    Settings.setValue(SETTINGS_FINISH_ON_OPEN, isFinishOnOpen);
-                    break;
-                case LOOP_RECORDINGS_ACTION:
+                        isFinishOnOpen = message.value;
+                        Settings.setValue(SETTINGS_FINISH_ON_OPEN, isFinishOnOpen);
+                        break;
+                    case LOOP_RECORDINGS_ACTION:
                     // Set behavior on dialog open.
-                    isLoopRecordings = message.value;
-                    Settings.setValue(SETTINGS_LOOP_RECORDINGS_ACTION, isLoopRecordings);
-                    break;
-                case PLAY_FROM_CURRENT_LOCATION_ACTION:
+                        isLoopRecordings = message.value;
+                        Settings.setValue(SETTINGS_LOOP_RECORDINGS_ACTION, isLoopRecordings);
+                        break;
+                    case PLAY_FROM_CURRENT_LOCATION_ACTION:
                     // Set behavior on dialog open.
-                    isPlayFromCurrentLocation = message.value;
-                    Settings.setValue(SETTINGS_PLAY_FROM_CURRENT_LOCATION_ACTION, isPlayFromCurrentLocation);
-                    break;
+                        isPlayFromCurrentLocation = message.value;
+                        Settings.setValue(SETTINGS_PLAY_FROM_CURRENT_LOCATION_ACTION, isPlayFromCurrentLocation);
+                        break;
                 }
             }
         }
@@ -784,8 +779,8 @@
 
     // FIXME: If setUp() is run immediately at Interface start-up, Interface hangs and crashes because of the line of code:
     //     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    //setUp();
-    //Script.scriptEnding.connect(tearDown);
+    // setUp();
+    // Script.scriptEnding.connect(tearDown);
     Script.setTimeout(function () {
         setUp();
         Script.scriptEnding.connect(tearDown);

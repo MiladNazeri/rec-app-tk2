@@ -18,6 +18,7 @@
         HIFI_PLAYER_CHANNEL = "HiFi-Player-Channel",
         PLAYER_COMMAND_PLAY = "play",
         PLAYER_COMMAND_STOP = "stop",
+        PLAYER_COMMAND_LOAD = "load",
         heartbeatTimer = null,
         HEARTBEAT_INTERVAL = 3000,
         TIMESTAMP_UPDATE_INTERVAL = 2500,
@@ -72,7 +73,6 @@
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-
         function onMessageReceived(channel, message, sender) {
             var index;
 
@@ -90,7 +90,7 @@
             }
         }
 
-        function create(filename, position, orientation,isLooped,uplayerTime, isPlayFromCurrentLocation ) {
+        function create(filename, position, orientation,isLooped,inTime,isPlayFromCurrentLocation ) {
             // Create a new persistence entity (even if already have one but that should never occur).
             var properties;
 
@@ -109,7 +109,7 @@
                 orientation: orientation,
                 scriptUUID: scriptUUID,
                 isLooped: isLooped,
-                playerTime: uplayerTime,
+                inTime: inTime,
                 isPlayFromCurrentLocation: isPlayFromCurrentLocation,
                 timestamp: Date.now()
             };
@@ -218,7 +218,10 @@
                             position: userData.position,
                             orientation: userData.orientation,
                             isLooped: userData.isLooped,
-                            playerTime: userData.playerTime,
+                            inTime: userData.inTime,
+                            inTime: userData.inTime,
+                            clipTime: userData.clipTime,
+                            offSetTime: userData.offSetTime,
                             isPlayFromCurrentLocation: userData.isPlayFromCurrentLocation };
                         break;
                     }
@@ -295,7 +298,7 @@
             isLoaded = false,
             recordingFilename = "",
             autoPlayTimer = null,
-            recordingLoaded,
+            recordingLoaded = false,
             autoPlay,
             playRecording;
 
@@ -332,7 +335,7 @@
             });
         }
 
-        function play(user, position, orientation, isLooped, playerTime, isPlayFromCurrentLocation) {
+        function play(user, position, orientation, isLooped, inTime, isPlayFromCurrentLocation) {
             var errorMessage;
 
             if (autoPlayTimer) { // Cancel auto-play.
@@ -344,10 +347,10 @@
 
             userID = user;
 
-            if (Entity.create(recording, position, orientation, isLooped, playerTime, isPlayFromCurrentLocation) && recordingLoaded) {
+            if (Entity.create(recording, position, orientation, isLooped, inTime, isPlayFromCurrentLocation) && recordingLoaded) {
                 log("Play recording " + recordingFilename);
                 isPlayingRecording = true; // Immediate feedback.
-                playRecording(position, orientation, true, isLooped, playerTime, isPlayFromCurrentLocation);
+                playRecording(position, orientation, true, isLooped, inTime, isPlayFromCurrentLocation);
             } else {
                 errorMessage = "Could not persist recording " + recording.slice(4); // Remove leading "atp:".
                 log(errorMessage);
@@ -375,15 +378,15 @@
                     autoPlayTimer = null;
                     isPlayingRecording = true; // Immediate feedback.
                     recordingFilename = recording.recording;
-                    playRecording(recording.position, recording.orientation, false, recording.isLooped, recording.playerTime, recording.isPlayFromCurrentLocation);
+                    playRecording(recording.position, recording.orientation, false, recording.isLooped, recording.inTime, recording.isPlayFromCurrentLocation);
                 } else {
                     autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_SEARCH_INTERVAL); // Try again soon.
                 }
             }, Math.random() * AUTOPLAY_SEARCH_DELTA);
         };
 
-        playRecording = function (position, orientation, isManual, isLooped, playerTime, isPlayFromCurrentLocation) {
-            playerTime = playerTime || 0.0;
+        playRecording = function (position, orientation, isManual, isLooped, inTime, isPlayFromCurrentLocation) {
+            inTime = inTime || 0.0;
 
             Users.disableIgnoreRadius();
 
@@ -398,7 +401,7 @@
             Recording.setPlayerLoop(isLooped);
             Recording.setPlayerUseSkeletonModel(true);
 
-            Recording.setPlayerTime(playerTime);
+            Recording.setPlayerTime(inTime);
             Recording.startPlaying();
 
             UserActivityLogger.logAction("playRecordingAC_play_recording");
@@ -489,12 +492,12 @@
         if (message.player === scriptUUID) {
             switch (message.command) {
                 case PLAYER_COMMAND_LOAD:
-                    Player.load(message.recording);
+                    Player.loadRecording(message.recording);
                     sendHeartbeat();
                     break;
                 case PLAYER_COMMAND_PLAY:
                     if (!Player.isPlaying()) {
-                        Player.play(sender, message.position, message.orientation, message.isLooped, message.playerTime, message.isPlayFromCurrentLocation);
+                        Player.play(sender, message.position, message.orientation, message.isLooped, message.inTime, message.isPlayFromCurrentLocation);
                     } else {
                         log("Didn't start playing " + message.recording + " because already playing " + Player.recording());
                     }

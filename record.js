@@ -146,7 +146,6 @@
 
             log("Recording mapped to " + mappingPath);
             log("Request load recording");
-
             load("atp:" + mappingPath, startPosition, startOrientation);
         }
 
@@ -283,9 +282,9 @@
 
             playerIDs = [], // UUIDs of AC player scripts.
             playerIsPlayings = [], // True if AC player script is playing a recording.
-            playerIsLoadeds = [],
             playerRecordings = [], // Assignment client mappings of recordings being played.
             playerTimestamps = [], // Timestamps of last heartbeat update from player script.
+            // playerIsLoadeds = [],
 
             updateTimer,
             UPDATE_INTERVAL = 5000; // Must be > player's HEARTBEAT_INTERVAL.
@@ -296,27 +295,39 @@
 
         function updatePlayers() {
             var now = Date.now(),
-                countBefore = playerIDs.length,
+                countBefore = numberOfPlayers(),
                 i;
 
             // Remove players that haven't sent a heartbeat for a while.
             for (i = playerTimestamps.length - 1; i >= 0; i -= 1) {
                 if (now - playerTimestamps[i] > UPDATE_INTERVAL) {
                     playerIDs.splice(i, 1);
-                    playerIsLoadeds.splice(i, 1);
                     playerIsPlayings.splice(i, 1);
                     playerRecordings.splice(i, 1);
                     playerTimestamps.splice(i, 1);
+                    // playerIsLoadeds.splice(i, 1);
+
                 }
             }
 
             // Update UI.
-            if (playerIDs.length !== countBefore) {
-                Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIsLoadeds, playerIDs);
+            if (numberOfPlayers() !== countBefore) {
+                Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
             }
         }
 
-        function playRecording(position, orientation, isLooped, playerTime, isPlayFromCurrentLocation) {
+        function playRecordings(){
+            playerIsPlaying.forEach(function(playing){
+                var position = playing.position;
+                var orientation = playing.orientation;
+                var isLooped = playing.isLooped;
+                var inTime = playing.inTime;
+                var isPlayFromCurrentLocation = playing.isPlayFromCurrentLocation;
+                playRecording(position, orientation, isLooped, inTime, isPlayFromCurrentLocation)
+            });
+        }
+
+        function playRecording(position, orientation, isLooped, inTime, isPlayFromCurrentLocation) {
             var index;
 
             // Optional function parameters.
@@ -331,8 +342,8 @@
                 isLooped = false;
             }
 
-            if (playerTime === undefined) {
-                playerTime = 0.0;
+            if (inTime === undefined) {
+                inTime = 0.0;
             }
 
             if (isPlayFromCurrentLocation === isPlayFromCurrentLocation) {
@@ -347,14 +358,16 @@
                 return;
             }
 
+
             Messages.sendMessage(HIFI_PLAYER_CHANNEL, JSON.stringify({
                 player: playerIDs[index],
                 command: PLAYER_COMMAND_PLAY,
                 position: position,
                 orientation: orientation,
                 isLooped: isLooped,
-                playerTime: playerTime,
-                isPlayFromCurrentLocation: isPlayFromCurrentLocation
+                inTime: inTime,
+                isPlayFromCurrentLocation: isPlayFromCurrentLocation,
+
             }));
         }
 
@@ -403,20 +416,27 @@
                     playerIDs[index] = sender;
                 }
                 playerIsPlayings[index] = message.playing;
-                playerIsLoadeds[index] = message.loaded;
-                playerRecordings[index] = message.recording;
+                // playerIsLoadeds[index] = message.loaded;
+                // playerRecordings[index] = message.recording;  ###
+                playerRecordings[index].fileName = message.fileName;
+                playerRecordings[index].inTime = message.inTime;
+                playerRecordings[index].offSetTime = message.offSetTime;
+                playerRecordings[index].clipTime = message.clipTime;
+                playerRecordings[index].position = message.position;
+                playerRecordings[index].orientation = message.orientation;
+                playerRecordings[index].isLooped = message.isLooped;
                 playerTimestamps[index] = Date.now();
-                Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIsLoadeds, playerIDs);
+                Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
             }
         }
 
         function reset() {
             playerIDs = [];
             playerIsPlayings = [];
-            playerIsLoadeds = [];
+            // playerIsLoadeds = [];
             playerRecordings = [];
             playerTimestamps = [];
-            Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIsLoadeds, playerIDs);
+            Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
         }
 
         function setUp() {
@@ -494,7 +514,7 @@
             }
         }
 
-        function updatePlayerDetails(playerIsPlayings, playerRecordings, playerIsLoadeds, playerIDs) {
+        function updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs) {
             var recordingsLoaded = [],
                 length,
                 i;

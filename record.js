@@ -298,9 +298,19 @@
                 countBefore = numberOfPlayers(),
                 i;
 
+            log("Player::updatePlayers:now:" + now);
+            log("Player::updatePlayers:countBefore:" + countBefore);
+
             // Remove players that haven't sent a heartbeat for a while.
             for (i = playerTimestamps.length - 1; i >= 0; i -= 1) {
+                log("Player::updatePlayers:playerTimestamps.length:" + playerTimestamps.length);
+
                 if (now - playerTimestamps[i] > UPDATE_INTERVAL) {
+                    log("Player::updatePlayers:playerIDs" + JSON.stringify(playerIDs));
+                    log("Player::updatePlayers:playerIsPlayings" + JSON.stringify(playerIsPlayings));
+                    log("Player::updatePlayers:playerRecordings" + JSON.stringify(playerRecordings));
+                    log("Player::updatePlayers:playerTimestamps" + JSON.stringify(playerTimestamps));
+
                     playerIDs.splice(i, 1);
                     playerIsPlayings.splice(i, 1);
                     playerRecordings.splice(i, 1);
@@ -309,6 +319,7 @@
 
                 }
             }
+            log("Player::updatePlayers:numberOfPlayers(AFTER)" + JSON.stringify(numberOfPlayers()));
 
             // Update UI.
             if (numberOfPlayers() !== countBefore) {
@@ -372,11 +383,16 @@
         }
 
         function loadRecording(recording) {
+            log("Player::###loadRecording");
             var index;
+            log("Player::loadRecording:recoding:" + JSON.stringify(recording));
+            log("Player::loadRecording:playerIsPlayings:" + JSON.stringify(playerIsPlayings));
 
             index = playerIsPlayings.indexOf(false);
+            log("Player::loadRecording:index:" + JSON.stringify(index));
+
             if (index === -1) {
-                error("No player instance available to play recording "
+                error("No player instance available to load recording "
                     + recording.slice(4) + "!"); // Remove leading "atp:" from recording.
                 return;
             }
@@ -411,10 +427,16 @@
                 }
             } else {
                 index = playerIDs.indexOf(sender);
+                log("Player::onMessageReceived:index:" + index);
+                log("Player::onMessageReceived:message:" + JSON.stringify(message));
+
                 if (index === -1) {
                     index = playerIDs.length;
                     playerIDs[index] = sender;
+                    playerRecordings[index] = {};
                 }
+                log("Player::onMessageReceived:playerRecordings:" + JSON.stringify(playerRecordings));
+
                 playerIsPlayings[index] = message.playing;
                 // playerIsLoadeds[index] = message.loaded;
                 // playerRecordings[index] = message.recording;  ###
@@ -473,9 +495,9 @@
             EVENT_BRIDGE_TYPE = "record",
             BODY_LOADED_ACTION = "bodyLoaded",
             USING_TOOLBAR_ACTION = "usingToolbar",
-            RECORDINGS_LOADED_ACTION = "recordingsLoaded",
+            // RECORDINGS_LOADED_ACTION = "recordingsLoaded",
             // RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
-            // PLAYERS_THAT_ARE_LOADED_ACTION = "playersThatAreLoaded",
+            PLAYERS_THAT_ARE_LOADED_ACTION = "playersThatAreLoaded",
             NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
             STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
             LOAD_RECORDING_ACTION = "loadRecording",
@@ -515,13 +537,13 @@
         }
 
         function updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs) {
-            var recordingsLoaded = [],
+            var playersLoaded = [],
                 length,
                 i;
 
             for (i = 0, length = playerIsPlayings.length; i < length; i += 1) {
                 if (playerIsPlayings[i]) {
-                    recordingsLoaded.push({
+                    playersLoaded.push({
                         filename: playerRecordings[i].filename,
                         offSetTime: playerRecordings[i].offSetTime,
                         clipTime: playerRecordings[i].clipTime,
@@ -531,17 +553,17 @@
                 }
             }
 
-            tablet.emitScriptEvent(JSON.stringify({
-                type: EVENT_BRIDGE_TYPE,
-                action: RECORDINGS_LOADED_ACTION,
-                value: JSON.stringify(recordingsLoaded)
-            }));
-
             // tablet.emitScriptEvent(JSON.stringify({
             //     type: EVENT_BRIDGE_TYPE,
-            //     action: PLAYERS_THAT_ARE_LOADED_ACTION,
-            //     value: JSON.stringify(playersLoaded)
+            //     action: RECORDINGS_LOADED_ACTION,
+            //     value: JSON.stringify(recordingsLoaded)
             // }));
+
+            tablet.emitScriptEvent(JSON.stringify({
+                type: EVENT_BRIDGE_TYPE,
+                action: PLAYERS_THAT_ARE_LOADED_ACTION,
+                value: JSON.stringify(playersLoaded)
+            }));
 
             tablet.emitScriptEvent(JSON.stringify({
                 type: EVENT_BRIDGE_TYPE,

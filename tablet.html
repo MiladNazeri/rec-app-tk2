@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>VR presenter</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://fonts.googleapis.com/css?family=Raleway:300,400,600,700" rel="stylesheet">
+    </head>
+
+<body>
+    <h1>Presentations by </h1>
+      <div class="container">
+        <img src="https://sinatra4-ekonomism.c9users.io/bild.jpg">
+        <button type="button" class="presenter-button btnopen" value="open">Open presentation</button>
+        <!-- <button type="button" class="presenter-button btnclose" value="close">Close presentations</button>
+        <button type="button" class="presenter-button btnslides" value="openslides">Slides</button> -->
+      </div>
+<style>
+
+body {
+                margin: 0;
+                width: 100%;
+                font-family: 'Raleway', sans-serif;
+                color: white;
+                background: linear-gradient(#2b2b2b, #0f212e);
+            }
+            .top-bar {
+                height: 90px;
+                background: linear-gradient(#2b2b2b, #1e1e1e);
+                font-weight: bold;
+                padding-left: 30px;
+                padding-right: 30px;
+                display: flex;
+                align-items: center;
+                position: fixed;
+                width: 480px;
+                top: 0;
+                z-index: 1;
+            }
+    /* Container needed to position the button. Adjust the width as needed */
+.container {
+  position: relative;
+  width: 100%;
+}
+
+/* Make the image responsive */
+.container img {
+  width: 100%;
+  height: auto;
+}
+
+/* Open presentation */
+.container .btnopen {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+  background-color: #555;
+  color: white;
+  font-size: 16px;
+  padding: 12px 24px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+  opacity: 0.5;
+}
+
+.container .btnopen:hover {
+  background-color: black;
+}
+
+/* Close presentation */
+.container .btnclose {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+  background-color: #555;
+  color: white;
+  font-size: 16px;
+  padding: 12px 24px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+    opacity: 0.5;
+}
+
+.container .btnclose:hover {
+  background-color: black;
+}
+
+/* Forward */
+.container .btnslides {
+  position: absolute;
+  top: 70%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+  background-color: #555;
+  color: white;
+  font-size: 16px;
+  padding: 12px 24px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+    opacity: 0.5;
+}
+
+.container .btnslides:hover {
+  background-color: black;
+}
+
+
+</style>
+
+     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+        <script>
+            var winH = $(window).height();   // returns height of browser viewport
+            var docH = $(document).height(); // returns height of HTML document (same as pageHeight in screenshot)
+            var winW = $(window).width();   // returns width of browser viewport
+            var docW = $(document).width();
+            alert("winH: " + winH + " docH: " + docH + " winW: " + winW + " docWL " + docW);
+            function main() {
+                // Send an event to gemstoneApp.js when the page loads and is ready to get things rolling
+                console.log("document ready");
+                var readyEvent = {
+                    "type": "ready",
+                };
+                // The event bridge handles event represented as a string the best. So here we first create a Javascript object, then convert to stirng
+                EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+                // Send an event when user click on each of the presenter buttons
+                $(".presenter-button").click(function(){
+                    console.log(this.value + " button click");
+                    var clickEvent = {
+                        "type": "click",
+                        "data": this.value
+                    };
+                    EventBridge.emitWebEvent(JSON.stringify(clickEvent));
+                });
+            }
+            $(document).ready(main);
+     </script>
+
+</body>
+</html>

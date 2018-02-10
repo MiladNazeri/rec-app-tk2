@@ -44,8 +44,8 @@ var isUsingToolbar = false,
     BODY_LOADED_ACTION = "bodyLoaded",
     USING_TOOLBAR_ACTION = "usingToolbar",
     // RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
-    RECORDINGS_LOADED_ACTION = "recordingsLoaded",
-    // PLAYERS_THAT_ARE_LOADED_ACTION = "playersThatAreLoaded",
+    // RECORDINGS_LOADED_ACTION = "recordingsLoaded",
+    PLAYERS_THAT_ARE_LOADED_ACTION = "playersThatAreLoaded",
     NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
     REMOVE_RECORDING_ACTION = "removeRecordingAction",
     // STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
@@ -313,13 +313,13 @@ function onScriptEventReceived(data) {
             updateSpinner();
             updateLoadButton();
             break;
-        case RECORDINGS_LOADED_ACTION:
-            recordingsLoaded = JSON.parse(message.value);
-            updateRecordings();
-            updatePlayersUnused();
-            updateInstructions();
-            updateLoadButton();
-            break;
+        // case RECORDINGS_LOADED_ACTION:
+        //     recordingsLoaded = JSON.parse(message.value);
+        //     updateRecordings();
+        //     updatePlayersUnused();
+        //     updateInstructions();
+        //     updateLoadButton();
+        //     break;
         // case RECORDINGS_BEING_PLAYED_ACTION:recordingsLoaded
         //     recordingsBeingPlayed = JSON.parse(message.value);
         //     updateRecordings();
